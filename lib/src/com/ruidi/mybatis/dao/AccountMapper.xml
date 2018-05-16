@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruidi.mybatis.dao.AccountMapper">
+    <resultMap id="AccountMap" type="account">
+        <id property="uid" column="uid"/>
+        <result property="nickname" column="wx_nickname"/>
+        <result property="openid" column="wx_openid"/>
+        <result property="headimgurl" column="wx_headimgurl"/>
+        <result property="province" column="wx_province"/>
+        <result property="city" column="wx_city"/>
+        <result property="country" column="wx_country"/>
+        <result property="language" column="wx_language"/>
+        <result property="sex" column="wxSex"/>
+        <result property="registerTime" column="registerTime"/>
+        <result property="lastLoginTime" column="lastLoginTime"/>
+        <result property="loginEnable" javaType="boolean" column="loginEnable" jdbcType="TINYINT"/>
+        <result property="agentid" column="agentid"/>
+        <association property="currency" javaType="currency">
+            <result property="card" column="card"/>
+            <result property="lockCard" column="lockCard"/>
+        </association>
+    </resultMap>
+    <select id="selectAccountByOpenId" parameterType="java.lang.String" resultMap="AccountMap">
+        SELECT acc.uid,acc.wx_nickname,acc.wx_openid,acc.wx_headimgurl,acc.wx_province,acc.wx_city,acc.wx_country,acc.wx_language,
+            acc.wx_sex,acc.registerTime,acc.lastLoginTime,acc.loginEnable, acc.agentid,
+            cur.card,cur.lockCard
+        FROM account acc,currency cur WHERE acc.wx_openid=#{openid} AND cur.account_id=acc.uid
+    </select>
+    <select id="selectAccountByUid" parameterType="long" resultMap="AccountMap">
+        SELECT acc.uid,acc.wx_nickname,acc.wx_openid,acc.wx_headimgurl,acc.wx_province,acc.wx_city,acc.wx_country,acc.wx_language,
+            acc.wx_sex,acc.registerTime,acc.lastLoginTime,acc.loginEnable, acc.agentid,
+            cur.card,cur.lockCard
+        FROM account acc,currency cur WHERE acc.uid=#{uid} AND cur.account_id=acc.uid
+    </select>
+    <update id="updateAccount" parameterType="account">
+        UPDATE account SET wx_nickname=#{nickname},
+            wx_headimgurl=#{headimgurl},
+            wx_province=#{province},
+            wx_city=#{city},
+            wx_country=#{country},
+            wx_language=#{language},
+            wx_sex=#{sex}
+        WHERE uid=#{uid}
+    </update>
+    <insert id="insertAccount" parameterType="account" useGeneratedKeys="true" keyProperty="uid">
+        INSERT INTO account (wx_nickname,
+                             wx_openid,
+                             wx_unionid,
+                             wx_headimgurl,
+                             wx_province,
+                             wx_city,
+                             wx_country,
+                             wx_language,
+                             wx_sex,
+                             registerTime,
+                             lastLoginTime,
+                             loginEnable,
+                             agentid) VALUES (
+                #{nickname},
+            #{openid},
+            #{unionid},
+            #{headimgurl},
+            #{province},
+            #{city},
+            #{country},
+            #{language},
+            #{sex},
+            #{registerTime},
+            #{lastLoginTime},
+            #{loginEnable},
+            #{agentid}
+        )
+    </insert>
+    <insert id="insertCurrency" parameterType="long">
+        INSERT INTO currency (account_id, card, lockCard) SELECT #{uid},intValue,0 FROM server_config WHERE name='GrantCardCount'
+    </insert>
+    <update id="updateOnline" parameterType="boolean">
+        UPDATE account SET online = #{ol,jdbcType=TINYINT}
+    </update>
+    <update id="updateLockCard" parameterType="account">
+        UPDATE currency SET lockCard=#{currency.lockCard,jdbcType=BIGINT} WHERE account_id=#{uid,jdbcType=BIGINT}
+    </update>
+    <update id="deductCardByUid">
+        UPDATE currency SET lockCard=lockCard-#{cost,jdbcType=INTEGER},card=card-#{cost,jdbcType=BIGINT} WHERE account_id=#{uid,jdbcType=BIGINT}
+    </update>
+    <update id="deductCard" parameterType="account">
+        UPDATE currency SET lockCard=#{currency.lockCard,jdbcType=INTEGER},card=#{currency.card,jdbcType=BIGINT} WHERE account_id=#{uid,jdbcType=BIGINT}
+    </update>
+</mapper>
